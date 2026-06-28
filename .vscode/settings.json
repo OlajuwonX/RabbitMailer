@@ -1,0 +1,8 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["turbo.json"],
+      "url": "https://turborepo.dev/schema.json"
+    }
+  ]
+}

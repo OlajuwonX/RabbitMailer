@@ -1,5 +1,5 @@
-import 'server-only'
-import { z } from 'zod'
+import "server-only";
+import { z } from "zod";
 
 const schema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -11,15 +11,15 @@ const schema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().min(1),
   EDGE_CONFIG: z.string().optional(),
   FALLBACK_TENANT_ID: z.string().optional(),
-})
+});
 
 function validate() {
-  const result = schema.safeParse(process.env)
+  const result = schema.safeParse(process.env);
   if (!result.success) {
-    const missing = result.error.issues.map(i => i.path.join('.')).join(', ')
-    throw new Error(`Missing or invalid environment variables: ${missing}`)
+    const missing = result.error.issues.map((i) => i.path.join(".")).join(", ");
+    throw new Error(`Missing or invalid environment variables: ${missing}`);
   }
-  return result.data
+  return result.data;
 }
 
-export const env = validate()
+export const env = validate();
