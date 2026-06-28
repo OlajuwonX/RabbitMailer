@@ -1,7 +1,17 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["DATABASE_URL", "DATABASE_URL_DIRECT"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "DATABASE_URL_DIRECT",
+    "SESSION_SECRET",
+    "NODE_ENV",
+    "REFRESH_TOKEN_SECRET",
+    "SMTP_ENCRYPTION_KEY",
+    "REVALIDATION_SECRET",
+    "EDGE_CONFIG",
+    "FALLBACK_TENANT_ID"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
