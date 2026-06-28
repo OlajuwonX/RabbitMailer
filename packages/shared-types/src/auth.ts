@@ -1,14 +1,19 @@
 export interface User {
   id: string
+  tenantId: string
   email: string
   name: string
+  isAdmin: boolean
   createdAt: Date
+  updatedAt: Date
 }
 
-export interface Session {
+export interface SessionPayload {
   userId: string
   email: string
-  expiresAt: Date
+  name: string
+  isAdmin: boolean
+  tenantId: string
 }
 
 export interface LoginInput {
