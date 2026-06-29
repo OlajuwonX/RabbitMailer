@@ -1,22 +1,32 @@
-'use client'
+"use client";
 
-import { useActionState } from 'react'
-import Link from 'next/link'
-import { signupAction } from '@/app/actions/auth'
-import { LinearCard, LinearTitle, LinearButton, LinearInput } from '@/components/ui/linear'
-import type { ActionResult } from '@repo/shared-types'
+import { useActionState } from "react";
+import Link from "next/link";
+import { signupAction } from "@/app/actions/auth";
+import {
+  LinearCard,
+  LinearTitle,
+  LinearButton,
+  LinearInput,
+} from "@/components/ui/linear";
+import type { ActionResult } from "@repo/shared-types";
 
-const initialState: ActionResult = { success: true }
+const initialState: ActionResult = { success: true };
 
 export default function SignupPage() {
-  const [state, formAction, isPending] = useActionState(signupAction, initialState)
+  const [state, formAction, isPending] = useActionState(
+    signupAction,
+    initialState,
+  );
 
   return (
     <LinearCard padding="lg" glow border="accent">
       <div className="space-y-6">
         <div className="space-y-1">
           <LinearTitle size="md">Create your account</LinearTitle>
-          <p className="text-sm text-slate-500">One admin account per domain.</p>
+          <p className="text-sm text-slate-500">
+            One admin account per domain.
+          </p>
         </div>
 
         <form action={formAction} className="space-y-4">
@@ -80,12 +90,12 @@ export default function SignupPage() {
           )}
 
           <LinearButton type="submit" fullWidth loading={isPending} size="lg">
-            {isPending ? 'Creating account…' : 'Create account'}
+            {isPending ? "Creating account…" : "Create account"}
           </LinearButton>
         </form>
 
         <p className="text-center text-sm text-slate-500">
-          Already have an account?{' '}
+          Already have an account?{" "}
           <Link
             href="/login"
             className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
@@ -95,5 +105,5 @@ export default function SignupPage() {
         </p>
       </div>
     </LinearCard>
-  )
+  );
 }

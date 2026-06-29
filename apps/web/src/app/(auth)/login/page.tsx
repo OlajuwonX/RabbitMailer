@@ -1,22 +1,32 @@
-'use client'
+"use client";
 
-import { useActionState } from 'react'
-import Link from 'next/link'
-import { loginAction } from '@/app/actions/auth'
-import { LinearCard, LinearTitle, LinearButton, LinearInput } from '@/components/ui/linear'
-import type { ActionResult } from '@repo/shared-types'
+import { useActionState } from "react";
+import Link from "next/link";
+import { loginAction } from "@/app/actions/auth";
+import {
+  LinearCard,
+  LinearTitle,
+  LinearButton,
+  LinearInput,
+} from "@/components/ui/linear";
+import type { ActionResult } from "@repo/shared-types";
 
-const initialState: ActionResult = { success: true }
+const initialState: ActionResult = { success: true };
 
 export default function LoginPage() {
-  const [state, formAction, isPending] = useActionState(loginAction, initialState)
+  const [state, formAction, isPending] = useActionState(
+    loginAction,
+    initialState,
+  );
 
   return (
     <LinearCard padding="lg" glow border="accent">
       <div className="space-y-6">
         <div className="space-y-1">
           <LinearTitle size="md">Welcome back</LinearTitle>
-          <p className="text-sm text-slate-500">Sign in to your admin account.</p>
+          <p className="text-sm text-slate-500">
+            Sign in to your admin account.
+          </p>
         </div>
 
         <form action={formAction} className="space-y-4">
@@ -59,12 +69,12 @@ export default function LoginPage() {
           )}
 
           <LinearButton type="submit" fullWidth loading={isPending} size="lg">
-            {isPending ? 'Signing in…' : 'Sign in'}
+            {isPending ? "Signing in…" : "Sign in"}
           </LinearButton>
         </form>
 
         <p className="text-center text-sm text-slate-500">
-          No account yet?{' '}
+          No account yet?{" "}
           <Link
             href="/signup"
             className="text-violet-400 hover:text-violet-300 font-medium transition-colors"
@@ -74,5 +84,5 @@ export default function LoginPage() {
         </p>
       </div>
     </LinearCard>
-  )
+  );
 }

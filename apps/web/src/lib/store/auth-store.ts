@@ -1,20 +1,20 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface UserProfile {
-  id: string
-  email: string
-  name: string
-  isAdmin: boolean
+  id: string;
+  email: string;
+  name: string;
+  isAdmin: boolean;
 }
 
 interface AuthState {
-  user: UserProfile | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  setUser: (user: UserProfile | null) => void
-  clearUser: () => void
-  setLoading: (loading: boolean) => void
+  user: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  setUser: (user: UserProfile | null) => void;
+  clearUser: () => void;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (isLoading) => set({ isLoading }),
     }),
     {
-      name: 'rabbit-auth',
+      name: "rabbit-auth",
       // Only persist the user object — never tokens or loading state
       partialize: (state) => ({
         user: state.user,
@@ -36,4 +36,4 @@ export const useAuthStore = create<AuthState>()(
       }),
     },
   ),
-)
+);
