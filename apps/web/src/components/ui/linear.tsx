@@ -108,15 +108,13 @@ export interface LinearButtonProps extends ButtonHTMLAttributes<HTMLButtonElemen
 
 const buttonVariants: Record<string, string> = {
   primary: cn(
-    "bg-linear-to-r from-blue-600 to-violet-600",
-    "border border-violet-500/30",
+    "bg-linear-to-r from-blue-600 to-purple-600",
+
     "text-white",
     "hover:from-blue-500 hover:to-violet-500",
-    "shadow-[0_0_16px_rgba(124,58,237,0.2)]",
-    "hover:shadow-[0_0_24px_rgba(124,58,237,0.4)]",
   ),
   secondary: cn(
-    "bg-white/6 hover:bg-white/9",
+    "bg-white/6",
     "border border-white/10 hover:border-white/16",
     "text-slate-200 hover:text-slate-50",
   ),
@@ -152,7 +150,7 @@ export function LinearButton({
     <button
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center font-medium",
+        "inline-flex items-center justify-center font-medium cursor-pointer",
         "transition-all duration-150",
         "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07070f]",

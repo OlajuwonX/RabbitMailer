@@ -23,10 +23,9 @@ export default function LoginPage() {
     <LinearCard padding="lg" glow border="accent">
       <div className="space-y-6">
         <div className="space-y-1">
-          <LinearTitle size="md">Welcome back</LinearTitle>
-          <p className="text-sm text-slate-500">
-            Sign in to your admin account.
-          </p>
+          <LinearTitle size="md" className="text-center">
+            Welcome back
+          </LinearTitle>
         </div>
 
         <form action={formAction} className="space-y-4">
@@ -68,7 +67,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <LinearButton type="submit" fullWidth loading={isPending} size="lg">
+          <LinearButton type="submit" fullWidth loading={isPending} size="md">
             {isPending ? "Signing in…" : "Sign in"}
           </LinearButton>
         </form>

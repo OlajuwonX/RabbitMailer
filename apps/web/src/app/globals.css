@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* ─── Design tokens — CSS custom properties, safe outside any layer ────────── */
 :root {
   --bg-base: #07070f;
   --bg-surface: #0c0c1e;
@@ -20,32 +21,40 @@
     );
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/*
+  IMPORTANT: All base/reset rules MUST live inside @layer base.
+  Tailwind v4 places utilities in @layer utilities. CSS outside any layer
+  always beats @layer rules in the cascade — so putting margin/padding resets
+  outside a layer would silently override every Tailwind spacing utility.
+*/
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-html {
-  height: 100%;
-  -webkit-text-size-adjust: 100%;
-}
+  html {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
 
-body {
-  min-height: 100%;
-  background-color: var(--bg-base);
-  background-image: var(--gradient-bg);
-  background-attachment: fixed;
-  color: var(--text-primary);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    min-height: 100%;
+    background-color: var(--bg-base);
+    background-image: var(--gradient-bg);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }

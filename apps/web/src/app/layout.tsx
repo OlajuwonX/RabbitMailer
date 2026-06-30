@@ -17,8 +17,9 @@ export const metadata: Metadata = {
   title: "RabbitMailer",
   description: "Bulk email, simplified.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: "/rabbitmailer.png",
+    shortcut: "/rabbitmailer.png",
+    apple: "/rabbitmailer.png",
   },
 };
 

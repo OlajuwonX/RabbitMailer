@@ -23,10 +23,9 @@ export default function SignupPage() {
     <LinearCard padding="lg" glow border="accent">
       <div className="space-y-6">
         <div className="space-y-1">
-          <LinearTitle size="md">Create your account</LinearTitle>
-          <p className="text-sm text-slate-500">
-            One admin account per domain.
-          </p>
+          <LinearTitle size="md" className="text-center">
+            Create your account
+          </LinearTitle>
         </div>
 
         <form action={formAction} className="space-y-4">
@@ -89,7 +88,7 @@ export default function SignupPage() {
             </div>
           )}
 
-          <LinearButton type="submit" fullWidth loading={isPending} size="lg">
+          <LinearButton type="submit" fullWidth loading={isPending} size="md">
             {isPending ? "Creating account…" : "Create account"}
           </LinearButton>
         </form>
