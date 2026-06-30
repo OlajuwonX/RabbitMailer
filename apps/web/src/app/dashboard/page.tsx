@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { logoutAction } from "@/app/actions/auth";
@@ -19,12 +18,11 @@ export default async function DashboardPage() {
       <header className="sticky top-0 z-50 border-b border-white/7 bg-white/2 backdrop-blur-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/rabbitmailer.png"
               alt="RabbitMailer"
-              width={24}
-              height={24}
-              unoptimized
+              className="w-6 h-6 object-contain rounded-md"
             />
             <span className="text-sm font-semibold text-slate-100">
               RabbitMailer

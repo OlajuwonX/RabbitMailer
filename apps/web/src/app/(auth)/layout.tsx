@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { LinearTitle } from "@/components/ui/linear";
 
 export default function AuthLayout({
@@ -11,13 +10,11 @@ export default function AuthLayout({
       <div className="relative w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2">
           <div className="rounded-full p-3">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src="/rabbitmailer.png"
               alt="RabbitMailer"
-              width={36}
-              height={36}
-              priority
-              unoptimized
+              className="w-9 h-9 object-contain rounded-xl"
             />
           </div>
           <LinearTitle gradient size="xl" as="h1">
