@@ -30,7 +30,6 @@ const cardBorders = {
 export function LinearCard({
   children,
   className,
-  glow = false,
   hover = false,
   padding = "md",
   border = "subtle",
@@ -42,9 +41,6 @@ export function LinearCard({
         "relative rounded-2xl border backdrop-blur-2xl",
         "bg-white/3",
         cardBorders[border],
-        "shadow-[0_2px_24px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.04)]",
-        glow &&
-          "shadow-[0_2px_24px_rgba(0,0,0,0.5),0_0_48px_rgba(109,40,217,0.1),inset_0_1px_0_rgba(255,255,255,0.04)]",
         hover &&
           "transition-all duration-200 cursor-pointer hover:bg-white/5 hover:border-white/12 hover:shadow-[0_4px_32px_rgba(0,0,0,0.5),0_0_32px_rgba(109,40,217,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]",
         cardPaddings[padding],
@@ -228,8 +224,8 @@ export function LinearInput({
           "transition-all duration-150",
           "focus:outline-none",
           error
-            ? "focus:border-red-500/70 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.12)]"
-            : "focus:border-violet-500/50 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.12)] focus:bg-white/6",
+            ? "focus:border-red-500/70 "
+            : "focus:border-violet-500/50 focus:bg-white/6",
           className,
         )}
         {...props}

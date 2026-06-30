@@ -20,7 +20,7 @@ export default function LoginPage() {
   );
 
   return (
-    <LinearCard padding="lg" glow border="accent">
+    <LinearCard padding="md" glow border="accent">
       <div className="space-y-6">
         <div className="space-y-1">
           <LinearTitle size="md" className="text-center">

@@ -24,6 +24,7 @@ export default async function DashboardPage() {
               alt="RabbitMailer"
               width={24}
               height={24}
+              unoptimized
             />
             <span className="text-sm font-semibold text-slate-100">
               RabbitMailer
