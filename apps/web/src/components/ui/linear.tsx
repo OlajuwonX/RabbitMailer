@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils/cn";
 
 // ─── Card ─── //
 export interface LinearCardProps extends HTMLAttributes<HTMLDivElement> {
-  glow?: boolean;
   hover?: boolean;
   padding?: "none" | "sm" | "md" | "lg";
   border?: "subtle" | "accent" | "none";

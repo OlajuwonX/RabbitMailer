@@ -9,6 +9,7 @@ import {
   LinearButton,
   LinearInput,
 } from "@/components/ui/linear";
+import { LinearPasswordInput } from "@/components/ui/password-input";
 import type { ActionResult } from "@repo/shared-types";
 
 const initialState: ActionResult = { success: true };
@@ -39,10 +40,9 @@ export default function LoginPage() {
             placeholder="you@example.com"
           />
 
-          <LinearInput
+          <LinearPasswordInput
             id="password"
             name="password"
-            type="password"
             label="Password"
             autoComplete="current-password"
             required

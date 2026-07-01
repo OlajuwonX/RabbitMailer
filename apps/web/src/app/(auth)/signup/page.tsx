@@ -9,6 +9,7 @@ import {
   LinearButton,
   LinearInput,
 } from "@/components/ui/linear";
+import { LinearPasswordInput } from "@/components/ui/password-input";
 import type { ActionResult } from "@repo/shared-types";
 
 const initialState: ActionResult = { success: true };
@@ -49,10 +50,9 @@ export default function SignupPage() {
             placeholder="you@example.com"
           />
 
-          <LinearInput
+          <LinearPasswordInput
             id="password"
             name="password"
-            type="password"
             label="Password"
             autoComplete="new-password"
             required
@@ -60,10 +60,9 @@ export default function SignupPage() {
             hint="At least 8 characters"
           />
 
-          <LinearInput
+          <LinearPasswordInput
             id="confirmPassword"
             name="confirmPassword"
-            type="password"
             label="Confirm password"
             autoComplete="new-password"
             required
