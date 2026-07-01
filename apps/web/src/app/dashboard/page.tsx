@@ -73,7 +73,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Placeholder content card */}
-        <LinearCard padding="lg" border="accent" glow>
+        <LinearCard padding="lg" border="accent">
           <div className="flex flex-col items-center text-center py-8 gap-4">
             <div className="h-12 w-12 rounded-2xl bg-linear-to-br from-blue-600/20 to-violet-600/20 border border-violet-500/20 flex items-center justify-center">
               <svg
