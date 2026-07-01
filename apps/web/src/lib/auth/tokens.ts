@@ -10,8 +10,11 @@ function getSecret() {
   return new TextEncoder().encode(s);
 }
 
-export async function generateRefreshToken(userId: string): Promise<string> {
-  return new SignJWT({ userId })
+export async function generateRefreshToken(
+  userId: string,
+  sessionVersion: number,
+): Promise<string> {
+  return new SignJWT({ userId, sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(EXPIRY)
@@ -20,13 +23,17 @@ export async function generateRefreshToken(userId: string): Promise<string> {
 
 export async function verifyRefreshToken(
   token: string,
-): Promise<string | null> {
+): Promise<{ userId: string; sessionVersion: number } | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret(), {
       algorithms: ["HS256"],
     });
-    const userId = (payload as { userId?: string }).userId;
-    return userId ?? null;
+    const { userId, sessionVersion } = payload as {
+      userId?: string;
+      sessionVersion?: number;
+    };
+    if (!userId || sessionVersion === undefined) return null;
+    return { userId, sessionVersion };
   } catch {
     return null;
   }

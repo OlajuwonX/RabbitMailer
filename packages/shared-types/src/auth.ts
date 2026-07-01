@@ -14,6 +14,7 @@ export interface SessionPayload {
   name: string;
   isAdmin: boolean;
   tenantId: string;
+  sessionVersion: number;
 }
 
 export interface LoginInput {

@@ -45,15 +45,16 @@ model TenantDomain {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  tenantId     String
-  email        String
-  password     String   @db.Text
-  name         String
-  isAdmin      Boolean  @default(false)
-  refreshToken String?  @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(uuid())
+  tenantId       String
+  email          String
+  password       String   @db.Text
+  name           String
+  isAdmin        Boolean  @default(false)
+  refreshToken   String?  @db.Text
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   sessions  Session[]
   templates Template[]

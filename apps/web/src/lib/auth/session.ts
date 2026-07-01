@@ -5,8 +5,11 @@ import { cache } from "react";
 import type { SessionPayload } from "@repo/shared-types";
 import { getPrisma } from "@/lib/db/prisma";
 
-const COOKIE_NAME = "session";
-const EXPIRY_DAYS = 7;
+const SESSION_COOKIE = "session";
+// Readable by JS — holds only the expiry timestamp, no sensitive data.
+// Used by SessionRefresher to schedule proactive refresh before expiry.
+const SESSION_EXP_COOKIE = "session_exp";
+const EXPIRY_MINUTES = 15;
 
 function getSecret() {
   const s = process.env.SESSION_SECRET;
@@ -14,15 +17,15 @@ function getSecret() {
   return new TextEncoder().encode(s);
 }
 
-function cookieExpiry() {
-  return new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+function sessionExpiry(): Date {
+  return new Date(Date.now() + EXPIRY_MINUTES * 60 * 1000);
 }
 
 export async function encrypt(payload: SessionPayload): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${EXPIRY_DAYS}d`)
+    .setExpirationTime(`${EXPIRY_MINUTES}m`)
     .sign(getSecret());
 }
 
@@ -46,61 +49,79 @@ export async function decrypt(
   }
 }
 
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
+
+function writeSessionCookies(
+  store: CookieStore,
+  token: string,
+  expiry: Date,
+): void {
+  const base = {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    expires: expiry,
+  };
+  store.set(SESSION_COOKIE, token, { ...base, httpOnly: true });
+  store.set(
+    SESSION_EXP_COOKIE,
+    String(Math.floor(expiry.getTime() / 1000)),
+    { ...base, httpOnly: false },
+  );
+}
+
 export async function createSession(
   userId: string,
   email: string,
   name: string,
   isAdmin: boolean,
+  sessionVersion: number,
 ): Promise<void> {
   const tenantId = (await headers()).get("x-tenant-id")!;
-  const token = await encrypt({ userId, email, name, isAdmin, tenantId });
-
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: cookieExpiry(),
+  const expiry = sessionExpiry();
+  const token = await encrypt({
+    userId,
+    email,
+    name,
+    isAdmin,
+    tenantId,
+    sessionVersion,
   });
+  writeSessionCookies(await cookies(), token, expiry);
 }
 
 export async function deleteSession(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  const store = await cookies();
+  store.delete(SESSION_COOKIE);
+  store.delete(SESSION_EXP_COOKIE);
 }
 
 export async function refreshSession(): Promise<
   (SessionPayload & { exp: number }) | null
 > {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
   const session = await decrypt(token);
   if (!session) return null;
 
+  const expiry = sessionExpiry();
   const newToken = await encrypt({
     userId: session.userId,
     email: session.email,
     name: session.name,
     isAdmin: session.isAdmin,
     tenantId: session.tenantId,
+    sessionVersion: session.sessionVersion,
   });
 
-  cookieStore.set(COOKIE_NAME, newToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: cookieExpiry(),
-  });
-
+  writeSessionCookies(store, newToken, expiry);
   return session;
 }
 
 export const getCurrentUser = cache(async () => {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+    const store = await cookies();
+    const token = store.get(SESSION_COOKIE)?.value;
     const session = await decrypt(token);
     if (!session) return null;
 

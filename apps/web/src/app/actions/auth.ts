@@ -78,11 +78,22 @@ export async function signupAction(
 
   const tenantId = (await headers()).get("x-tenant-id")!;
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+
+  // sessionVersion starts at 1 for newly registered users
   const user = await prisma.user.create({
-    data: { name, email, password: hashed, isAdmin: true, tenantId },
+    data: { name, email, password: hashed, isAdmin: true, tenantId, sessionVersion: 1 },
   });
 
-  await createSession(user.id, user.email, user.name, user.isAdmin);
+  const refreshToken = await generateRefreshToken(user.id, user.sessionVersion);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken },
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions());
+
+  await createSession(user.id, user.email, user.name, user.isAdmin, user.sessionVersion);
   redirect("/dashboard");
 }
 
@@ -108,13 +119,23 @@ export async function loginAction(
   const match = await bcrypt.compare(password, user.password);
   if (!match) return { success: false, error: "Invalid email or password" };
 
-  const refreshToken = await generateRefreshToken(user.id);
-  await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
+  // Increment sessionVersion on every new login — invalidates any existing sessions
+  const updated = await prisma.user.update({
+    where: { id: user.id },
+    data: { sessionVersion: { increment: 1 } },
+    select: { sessionVersion: true },
+  });
+
+  const refreshToken = await generateRefreshToken(user.id, updated.sessionVersion);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshToken },
+  });
 
   const cookieStore = await cookies();
   cookieStore.set(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions());
 
-  await createSession(user.id, user.email, user.name, user.isAdmin);
+  await createSession(user.id, user.email, user.name, user.isAdmin, updated.sessionVersion);
   redirect("/dashboard");
 }
 
@@ -124,11 +145,11 @@ export async function logoutAction(): Promise<void> {
     const token = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
 
     if (token) {
-      const userId = await verifyRefreshToken(token);
-      if (userId) {
+      const tokenData = await verifyRefreshToken(token);
+      if (tokenData) {
         const prisma = await getPrisma();
         await prisma.user
-          .update({ where: { id: userId }, data: { refreshToken: null } })
+          .update({ where: { id: tokenData.userId }, data: { refreshToken: null } })
           .catch(() => {});
       }
     }
@@ -147,13 +168,22 @@ export async function refreshSessionAction(): Promise<ActionResult> {
   const token = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
   if (!token) return { success: false, error: "No refresh token" };
 
-  const userId = await verifyRefreshToken(token);
-  if (!userId) return { success: false, error: "Invalid refresh token" };
+  const tokenData = await verifyRefreshToken(token);
+  if (!tokenData) return { success: false, error: "Invalid refresh token" };
+
+  const { userId, sessionVersion } = tokenData;
 
   const prisma = await getPrisma();
   const user = await prisma.user.findUnique({ where: { id: userId } });
+
   if (!user || user.refreshToken !== token) {
     return { success: false, error: "Token mismatch" };
+  }
+
+  // Version mismatch means a newer login happened on another device — reject this session
+  if (user.sessionVersion !== sessionVersion) {
+    await deleteSession();
+    return { success: false, error: "Session superseded by newer login" };
   }
 
   const currentTenantId = (await headers()).get("x-tenant-id");
@@ -161,16 +191,13 @@ export async function refreshSessionAction(): Promise<ActionResult> {
     return { success: false, error: "Tenant mismatch" };
   }
 
-  const newRefreshToken = await generateRefreshToken(user.id);
+  // Rotate the refresh token (same sessionVersion — no new login, just renewal)
+  const newRefreshToken = await generateRefreshToken(userId, sessionVersion);
   await prisma.user.update({
-    where: { id: user.id },
+    where: { id: userId },
     data: { refreshToken: newRefreshToken },
   });
-  cookieStore.set(
-    REFRESH_TOKEN_COOKIE,
-    newRefreshToken,
-    refreshCookieOptions(),
-  );
+  cookieStore.set(REFRESH_TOKEN_COOKIE, newRefreshToken, refreshCookieOptions());
 
   await refreshSession();
   return { success: true };
