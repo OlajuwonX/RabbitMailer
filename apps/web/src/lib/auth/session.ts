@@ -38,6 +38,7 @@ export async function decrypt(
     });
     const session = payload as unknown as SessionPayload & { exp: number };
 
+    // Reject tokens that don't belong to the current tenant
     const currentTenantId = (await headers()).get("x-tenant-id");
     if (!currentTenantId || session.tenantId !== currentTenantId) return null;
 
