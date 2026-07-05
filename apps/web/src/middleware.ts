@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { get } from "@vercel/edge-config";
 import { jwtVerify } from "jose";
-import { createCsrfProtect, CsrfError } from "@edge-csrf/nextjs";
-
-const csrfProtect = createCsrfProtect({
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-  },
-});
 
 const SESSION_COOKIE = "session";
-// Non-httponly — CSRF token readable by client JS for hidden form fields and programmatic actions.
-const CSRF_CLIENT_COOKIE = "_csrf";
+// httpOnly — Server Actions read this to validate the form field; JS cannot touch it.
+const CSRF_COOKIE = "_csrf_token";
 
-const PUBLIC_EXACT = new Set(["/login", "/signup"]);
-const PUBLIC_PREFIXES = [
-  "/api/track/",
-  "/api/webhooks",
-  "/api/internal/revalidate",
-];
-
-// Authenticated users hitting these paths are redirected to /dashboard
-const AUTH_ONLY_PATHS = new Set(["/login", "/signup"]);
+function generateCsrfToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 async function resolveTenantId(host: string): Promise<string | null> {
   if (process.env.EDGE_CONFIG) {
@@ -52,6 +40,14 @@ async function verifySession(
   }
 }
 
+const PUBLIC_EXACT = new Set(["/login", "/signup"]);
+const PUBLIC_PREFIXES = [
+  "/api/track/",
+  "/api/webhooks",
+  "/api/internal/revalidate",
+];
+const AUTH_ONLY_PATHS = new Set(["/login", "/signup"]);
+
 export async function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const tenantId = await resolveTenantId(host);
@@ -59,34 +55,16 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // --- CSRF ---
-  // Form POSTs: validates csrf_token field (hard block on failure).
-  // text/plain POSTs (programmatic Server Actions): reads first JSON array element as token; swallowed on failure — SameSite=Lax covers these.
-  const csrfResponse = NextResponse.next();
-  const contentType = request.headers.get("content-type") ?? "";
-  const isFormPost =
-    contentType.includes("multipart/form-data") ||
-    contentType.includes("application/x-www-form-urlencoded");
+  // Reuse existing token so it stays consistent within a browser session.
+  const csrfToken =
+    request.cookies.get(CSRF_COOKIE)?.value ?? generateCsrfToken();
 
-  try {
-    await csrfProtect(request, csrfResponse);
-  } catch (err) {
-    if (err instanceof CsrfError && isFormPost) {
-      return new NextResponse("Invalid CSRF token", { status: 403 });
-    }
-    if (!(err instanceof CsrfError)) throw err;
-    // Non-form requests without a token — rely on SameSite=Lax.
-  }
-
-  const csrfToken = csrfResponse.headers.get("X-CSRF-Token") ?? "";
-
-  // --- Tenant + session ---
   const isPublic =
     PUBLIC_EXACT.has(pathname) ||
     PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
-  const authenticated = await verifySession(token, tenantId);
+  const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
+  const authenticated = await verifySession(sessionToken, tenantId);
 
   if (authenticated && AUTH_ONLY_PATHS.has(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -96,25 +74,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Forward tenant identity to Server Components and Route Handlers
+  // Forward tenant + CSRF token to Server Components as request headers.
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-tenant-id", tenantId);
+  requestHeaders.set("x-csrf-token", csrfToken);
 
-  const finalResponse = NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
-  // Copy _csrfSecret cookie from csrfResponse to the final response.
-  csrfResponse.cookies.getAll().forEach(({ name, value, ...rest }) => {
-    finalResponse.cookies.set(name, value, rest);
-  });
-
-  finalResponse.cookies.set(CSRF_CLIENT_COOKIE, csrfToken, {
-    httpOnly: false,
-    sameSite: "lax",
+  // httpOnly so JS cannot read or tamper with the stored token.
+  response.cookies.set(CSRF_COOKIE, csrfToken, {
+    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     path: "/",
   });
 
-  return finalResponse;
+  return response;
 }
 
 export const config = {

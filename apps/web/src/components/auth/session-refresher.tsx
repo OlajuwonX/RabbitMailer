@@ -24,10 +24,8 @@ export function SessionRefresher() {
       if (exp - Math.floor(Date.now() / 1000) > REFRESH_BUFFER_SECONDS) return;
 
       isRefreshing.current = true;
-      const csrfToken =
-        document.cookie.match(/(?:^|;\s*)_csrf=([^;]+)/)?.[1] ?? "";
       try {
-        const result = await refreshSessionAction(csrfToken);
+        const result = await refreshSessionAction();
         if (!result.success) {
           // Hard reload clears all React + Zustand in-memory state cleanly.
           window.location.replace("/login");

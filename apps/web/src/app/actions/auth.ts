@@ -15,6 +15,7 @@ import {
   verifyRefreshToken,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth/tokens";
+import { validateCsrf } from "@/lib/auth/csrf";
 import type { ActionResult } from "@repo/shared-types";
 
 const SALT_ROUNDS = 12;
@@ -50,6 +51,10 @@ export async function signupAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  if (!(await validateCsrf(formData))) {
+    return { success: false, error: "Invalid request. Please refresh and try again." };
+  }
+
   const parsed = signupSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -79,7 +84,6 @@ export async function signupAction(
   const tenantId = (await headers()).get("x-tenant-id")!;
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // sessionVersion starts at 1 for newly registered users
   const user = await prisma.user.create({
     data: {
       name,
@@ -114,6 +118,10 @@ export async function loginAction(
   _prevState: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
+  if (!(await validateCsrf(formData))) {
+    return { success: false, error: "Invalid request. Please refresh and try again." };
+  }
+
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -188,9 +196,8 @@ export async function logoutAction(): Promise<void> {
   redirect("/login");
 }
 
-// First arg is the CSRF token — middleware extracts it from the text/plain body and validates it.
-export async function refreshSessionAction(csrfToken: string): Promise<ActionResult> {
-  void csrfToken;
+// No explicit CSRF needed — Next.js validates Origin and Next-Action headers on all Server Actions.
+export async function refreshSessionAction(): Promise<ActionResult> {
   const cookieStore = await cookies();
   const token = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
   if (!token) return { success: false, error: "No refresh token" };
