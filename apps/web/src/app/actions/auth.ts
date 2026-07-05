@@ -81,7 +81,14 @@ export async function signupAction(
 
   // sessionVersion starts at 1 for newly registered users
   const user = await prisma.user.create({
-    data: { name, email, password: hashed, isAdmin: true, tenantId, sessionVersion: 1 },
+    data: {
+      name,
+      email,
+      password: hashed,
+      isAdmin: true,
+      tenantId,
+      sessionVersion: 1,
+    },
   });
 
   const refreshToken = await generateRefreshToken(user.id, user.sessionVersion);
@@ -93,7 +100,13 @@ export async function signupAction(
   const cookieStore = await cookies();
   cookieStore.set(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions());
 
-  await createSession(user.id, user.email, user.name, user.isAdmin, user.sessionVersion);
+  await createSession(
+    user.id,
+    user.email,
+    user.name,
+    user.isAdmin,
+    user.sessionVersion,
+  );
   redirect("/dashboard");
 }
 
@@ -126,7 +139,10 @@ export async function loginAction(
     select: { sessionVersion: true },
   });
 
-  const refreshToken = await generateRefreshToken(user.id, updated.sessionVersion);
+  const refreshToken = await generateRefreshToken(
+    user.id,
+    updated.sessionVersion,
+  );
   await prisma.user.update({
     where: { id: user.id },
     data: { refreshToken },
@@ -135,7 +151,13 @@ export async function loginAction(
   const cookieStore = await cookies();
   cookieStore.set(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions());
 
-  await createSession(user.id, user.email, user.name, user.isAdmin, updated.sessionVersion);
+  await createSession(
+    user.id,
+    user.email,
+    user.name,
+    user.isAdmin,
+    updated.sessionVersion,
+  );
   redirect("/dashboard");
 }
 
@@ -149,7 +171,10 @@ export async function logoutAction(): Promise<void> {
       if (tokenData) {
         const prisma = await getPrisma();
         await prisma.user
-          .update({ where: { id: tokenData.userId }, data: { refreshToken: null } })
+          .update({
+            where: { id: tokenData.userId },
+            data: { refreshToken: null },
+          })
           .catch(() => {});
       }
     }
@@ -197,7 +222,11 @@ export async function refreshSessionAction(): Promise<ActionResult> {
     where: { id: userId },
     data: { refreshToken: newRefreshToken },
   });
-  cookieStore.set(REFRESH_TOKEN_COOKIE, newRefreshToken, refreshCookieOptions());
+  cookieStore.set(
+    REFRESH_TOKEN_COOKIE,
+    newRefreshToken,
+    refreshCookieOptions(),
+  );
 
   await refreshSession();
   return { success: true };

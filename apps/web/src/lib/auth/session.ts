@@ -63,11 +63,10 @@ function writeSessionCookies(
     expires: expiry,
   };
   store.set(SESSION_COOKIE, token, { ...base, httpOnly: true });
-  store.set(
-    SESSION_EXP_COOKIE,
-    String(Math.floor(expiry.getTime() / 1000)),
-    { ...base, httpOnly: false },
-  );
+  store.set(SESSION_EXP_COOKIE, String(Math.floor(expiry.getTime() / 1000)), {
+    ...base,
+    httpOnly: false,
+  });
 }
 
 export async function createSession(
