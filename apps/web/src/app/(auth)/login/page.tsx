@@ -10,6 +10,7 @@ import {
   LinearInput,
 } from "@/components/ui/linear";
 import { LinearPasswordInput } from "@/components/ui/password-input";
+import { useCsrfToken } from "@/hooks/use-csrf-token";
 import type { ActionResult } from "@repo/shared-types";
 
 const initialState: ActionResult = { success: true };
@@ -19,6 +20,7 @@ export default function LoginPage() {
     loginAction,
     initialState,
   );
+  const csrfToken = useCsrfToken();
 
   return (
     <LinearCard padding="md" border="accent">
@@ -30,6 +32,7 @@ export default function LoginPage() {
         </div>
 
         <form action={formAction} className="space-y-4">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
           <LinearInput
             id="email"
             name="email"

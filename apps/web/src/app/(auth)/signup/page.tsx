@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { signupAction } from "@/app/actions/auth";
+import { useCsrfToken } from "@/hooks/use-csrf-token";
 import {
   LinearCard,
   LinearTitle,
@@ -19,6 +20,7 @@ export default function SignupPage() {
     signupAction,
     initialState,
   );
+  const csrfToken = useCsrfToken();
 
   return (
     <LinearCard padding="md" border="accent">
@@ -30,6 +32,7 @@ export default function SignupPage() {
         </div>
 
         <form action={formAction} className="space-y-4">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
           <LinearInput
             id="name"
             name="name"

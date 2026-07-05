@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { refreshSessionAction } from "@/app/actions/auth";
 
 // Proactively refresh the 15-min session JWT before it expires.
@@ -18,7 +17,6 @@ function readSessionExp(): number | null {
 }
 
 export function SessionRefresher() {
-  const router = useRouter();
   const isRefreshing = useRef(false);
 
   useEffect(() => {
@@ -29,10 +27,14 @@ export function SessionRefresher() {
       if (exp - Math.floor(Date.now() / 1000) > REFRESH_BUFFER_SECONDS) return;
 
       isRefreshing.current = true;
+      // Read the _csrf non-httponly cookie so middleware can validate the token
+      const csrfToken =
+        document.cookie.match(/(?:^|;\s*)_csrf=([^;]+)/)?.[1] ?? "";
       try {
-        const result = await refreshSessionAction();
+        const result = await refreshSessionAction(csrfToken);
         if (!result.success) {
-          router.push("/login");
+          // Hard reload — tears down React state and clears Zustand store in memory
+          window.location.replace("/login");
         }
       } finally {
         isRefreshing.current = false;
@@ -52,7 +54,7 @@ export function SessionRefresher() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [router]);
+  }, []);
 
   return null;
 }

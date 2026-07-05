@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { get } from "@vercel/edge-config";
 import { jwtVerify } from "jose";
+import { createCsrfProtect, CsrfError } from "@edge-csrf/nextjs";
+
+const csrfProtect = createCsrfProtect({
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  },
+});
 
 const SESSION_COOKIE = "session";
+// Non-httponly companion cookie — the CSRF token value readable by client JS.
+// Client reads it via useCsrfToken hook for hidden form fields and programmatic actions.
+const CSRF_CLIENT_COOKIE = "_csrf";
 
-// Paths that never require a session
 const PUBLIC_EXACT = new Set(["/login", "/signup"]);
 const PUBLIC_PREFIXES = [
   "/api/track/",
@@ -12,7 +22,7 @@ const PUBLIC_PREFIXES = [
   "/api/internal/revalidate",
 ];
 
-// Authenticated users on these paths are redirected to /dashboard
+// Authenticated users hitting these paths are redirected to /dashboard
 const AUTH_ONLY_PATHS = new Set(["/login", "/signup"]);
 
 async function resolveTenantId(host: string): Promise<string | null> {
@@ -49,16 +59,39 @@ export async function middleware(request: NextRequest) {
   if (!tenantId) return new NextResponse("Not found", { status: 404 });
 
   const { pathname } = request.nextUrl;
+
+  // --- CSRF protection ---
+  // csrfProtect mutates the response: sets _csrfSecret httponly cookie + X-CSRF-Token header.
+  // For form POSTs (multipart/form-data, urlencoded): validates csrf_token field in body.
+  // For text/plain POSTs (programmatic Server Actions): reads first JSON array element as token.
+  // A CsrfError on form submissions is a hard block; on programmatic calls we let it through
+  // (SameSite=Lax + Next.js Origin header check cover those).
+  const csrfResponse = NextResponse.next();
+  const contentType = request.headers.get("content-type") ?? "";
+  const isFormPost =
+    contentType.includes("multipart/form-data") ||
+    contentType.includes("application/x-www-form-urlencoded");
+
+  try {
+    await csrfProtect(request, csrfResponse);
+  } catch (err) {
+    if (err instanceof CsrfError && isFormPost) {
+      return new NextResponse("Invalid CSRF token", { status: 403 });
+    }
+    if (!(err instanceof CsrfError)) throw err;
+    // Swallow CsrfError for non-form requests: logoutAction called without a form,
+    // any other programmatic action not explicitly passed a token.
+  }
+
+  const csrfToken = csrfResponse.headers.get("X-CSRF-Token") ?? "";
+
+  // --- Tenant + session ---
   const isPublic =
     PUBLIC_EXACT.has(pathname) ||
     PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const authenticated = await verifySession(token, tenantId);
-
-  // Forward tenant identity to Server Components and Route Handlers
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-tenant-id", tenantId);
 
   if (authenticated && AUTH_ONLY_PATHS.has(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -68,7 +101,27 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  // Forward tenant identity to Server Components and Route Handlers
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-tenant-id", tenantId);
+
+  const finalResponse = NextResponse.next({ request: { headers: requestHeaders } });
+
+  // Copy CSRF secret cookie (_csrfSecret) from csrfResponse to the final response
+  csrfResponse.cookies.getAll().forEach(({ name, value, ...rest }) => {
+    finalResponse.cookies.set(name, value, rest);
+  });
+
+  // Also expose the token as a non-httponly cookie so client JS (useCsrfToken hook)
+  // can read it for hidden form fields and pass it to programmatic Server Actions.
+  finalResponse.cookies.set(CSRF_CLIENT_COOKIE, csrfToken, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+
+  return finalResponse;
 }
 
 export const config = {
