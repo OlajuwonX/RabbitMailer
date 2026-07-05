@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-// Reads the non-httponly _csrf cookie set by middleware.
-// Returns the CSRF token for inclusion as a hidden form field.
+// Reads the non-httponly _csrf cookie (set by middleware) for use in hidden form fields.
 export function useCsrfToken(): string {
   const [token, setToken] = useState("");
   useEffect(() => {

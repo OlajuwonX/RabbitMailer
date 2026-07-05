@@ -188,9 +188,9 @@ export async function logoutAction(): Promise<void> {
   redirect("/login");
 }
 
-// _csrfToken is intentionally the first argument so @edge-csrf/nextjs middleware
-// can extract it from the text/plain body (Next.js serialises args as a JSON array).
-export async function refreshSessionAction(_csrfToken: string): Promise<ActionResult> {
+// First arg is the CSRF token — middleware extracts it from the text/plain body and validates it.
+export async function refreshSessionAction(csrfToken: string): Promise<ActionResult> {
+  void csrfToken;
   const cookieStore = await cookies();
   const token = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
   if (!token) return { success: false, error: "No refresh token" };

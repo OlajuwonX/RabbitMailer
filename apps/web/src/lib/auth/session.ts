@@ -6,8 +6,7 @@ import type { SessionPayload } from "@repo/shared-types";
 import { getPrisma } from "@/lib/db/prisma";
 
 const SESSION_COOKIE = "session";
-// Readable by JS — holds only the expiry timestamp, no sensitive data.
-// Used by SessionRefresher to schedule proactive refresh before expiry.
+// Non-httponly — plain Unix timestamp read by SessionRefresher to schedule proactive refresh.
 const SESSION_EXP_COOKIE = "session_exp";
 const EXPIRY_MINUTES = 15;
 
@@ -39,7 +38,6 @@ export async function decrypt(
     });
     const session = payload as unknown as SessionPayload & { exp: number };
 
-    // Reject tokens that don't belong to the current tenant
     const currentTenantId = (await headers()).get("x-tenant-id");
     if (!currentTenantId || session.tenantId !== currentTenantId) return null;
 

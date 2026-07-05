@@ -11,8 +11,7 @@ const csrfProtect = createCsrfProtect({
 });
 
 const SESSION_COOKIE = "session";
-// Non-httponly companion cookie — the CSRF token value readable by client JS.
-// Client reads it via useCsrfToken hook for hidden form fields and programmatic actions.
+// Non-httponly — CSRF token readable by client JS for hidden form fields and programmatic actions.
 const CSRF_CLIENT_COOKIE = "_csrf";
 
 const PUBLIC_EXACT = new Set(["/login", "/signup"]);
@@ -60,12 +59,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // --- CSRF protection ---
-  // csrfProtect mutates the response: sets _csrfSecret httponly cookie + X-CSRF-Token header.
-  // For form POSTs (multipart/form-data, urlencoded): validates csrf_token field in body.
-  // For text/plain POSTs (programmatic Server Actions): reads first JSON array element as token.
-  // A CsrfError on form submissions is a hard block; on programmatic calls we let it through
-  // (SameSite=Lax + Next.js Origin header check cover those).
+  // --- CSRF ---
+  // Form POSTs: validates csrf_token field (hard block on failure).
+  // text/plain POSTs (programmatic Server Actions): reads first JSON array element as token; swallowed on failure — SameSite=Lax covers these.
   const csrfResponse = NextResponse.next();
   const contentType = request.headers.get("content-type") ?? "";
   const isFormPost =
@@ -79,8 +75,7 @@ export async function middleware(request: NextRequest) {
       return new NextResponse("Invalid CSRF token", { status: 403 });
     }
     if (!(err instanceof CsrfError)) throw err;
-    // Swallow CsrfError for non-form requests: logoutAction called without a form,
-    // any other programmatic action not explicitly passed a token.
+    // Non-form requests without a token — rely on SameSite=Lax.
   }
 
   const csrfToken = csrfResponse.headers.get("X-CSRF-Token") ?? "";
@@ -107,13 +102,11 @@ export async function middleware(request: NextRequest) {
 
   const finalResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
-  // Copy CSRF secret cookie (_csrfSecret) from csrfResponse to the final response
+  // Copy _csrfSecret cookie from csrfResponse to the final response.
   csrfResponse.cookies.getAll().forEach(({ name, value, ...rest }) => {
     finalResponse.cookies.set(name, value, rest);
   });
 
-  // Also expose the token as a non-httponly cookie so client JS (useCsrfToken hook)
-  // can read it for hidden form fields and pass it to programmatic Server Actions.
   finalResponse.cookies.set(CSRF_CLIENT_COOKIE, csrfToken, {
     httpOnly: false,
     sameSite: "lax",
