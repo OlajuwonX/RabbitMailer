@@ -45,6 +45,7 @@ const PUBLIC_PREFIXES = [
   "/api/track/",
   "/api/webhooks",
   "/api/internal/revalidate",
+  "/api/auth/refresh",
 ];
 const AUTH_ONLY_PATHS = new Set(["/login", "/signup"]);
 
@@ -71,7 +72,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!isPublic && !authenticated) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Try a silent token refresh before forcing a login screen.
+    const refreshUrl = new URL("/api/auth/refresh", request.url);
+    refreshUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(refreshUrl);
   }
 
   // Forward tenant + CSRF token to Server Components as request headers.

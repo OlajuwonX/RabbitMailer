@@ -27,6 +27,14 @@ export function SessionRefresher() {
       try {
         const result = await refreshSessionAction();
         if (!result.success) {
+          if (result.error === "Token mismatch") {
+            // The refresh route may have already rotated the token — check
+            // whether a fresh session_exp was set before forcing logout.
+            const freshExp = readSessionExp();
+            if (freshExp && freshExp - Math.floor(Date.now() / 1000) > REFRESH_BUFFER_SECONDS) {
+              return; // A concurrent refresh already renewed the session.
+            }
+          }
           // Hard reload clears all React + Zustand in-memory state cleanly.
           window.location.replace("/login");
         }
