@@ -6,7 +6,9 @@ import { createTransporterForTenant } from "./mailer.js";
 import { getScopedPrisma } from "./db.js";
 import { injectTrackingPixel, wrapTrackingLinks } from "./tracking.js";
 
-const QUEUE_PATTERN = "send-email-*";
+// Single shared queue for all tenants — pg-boss v12 does not support wildcards in work().
+// tenantId is carried in job.data and used to scope all DB and SMTP operations.
+const QUEUE_NAME = "send-email";
 const PORT = Number(process.env.PORT ?? 3001);
 
 async function processEmail(job: JobWithMetadata<EmailJob>): Promise<void> {
@@ -113,12 +115,14 @@ async function main(): Promise<void> {
   });
 
   await boss.start();
+  // Queue must exist before work() calls getQueueCache() — idempotent due to ON CONFLICT DO NOTHING.
+  await boss.createQueue(QUEUE_NAME);
 
   // includeMetadata: true makes pg-boss deliver full JobWithMetadata objects (retryCount /
   // retryLimit). TypeScript can't resolve the WorkHandlerFor conditional type against a lambda
   // parameter, so we cast the array to match the runtime shape.
   await boss.work<EmailJob, void>(
-    QUEUE_PATTERN,
+    QUEUE_NAME,
     { localConcurrency: 1, includeMetadata: true } as const,
     async (jobs) => {
       for (const job of jobs as unknown as JobWithMetadata<EmailJob>[]) {
@@ -127,7 +131,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log(`Worker started — queue pattern: ${QUEUE_PATTERN}`);
+  console.log(`Worker started — queue: ${QUEUE_NAME}`);
 
   // Minimal HTTP server so Railway (or any PaaS) can health-check the process
   const server = http.createServer((req, res) => {

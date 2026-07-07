@@ -7,6 +7,11 @@ const g = globalThis as unknown as { boss?: PgBoss };
 // Serializes concurrent getBoss() calls on a cold start so only one PgBoss instance is created even when multiple requests arrive simultaneously.
 let _startPromise: Promise<PgBoss> | null = null;
 
+// Single shared queue for all tenants. pg-boss v12 does not support wildcard patterns in
+// boss.work() — getQueueCache() does a strict exact-name lookup. All tenant email jobs
+// share this queue; tenantId is carried in job.data and used to scope all DB operations.
+export const EMAIL_QUEUE = "send-email";
+
 export async function getBoss(): Promise<PgBoss> {
   if (g.boss) return g.boss;
   if (!_startPromise) _startPromise = _start();
@@ -24,6 +29,8 @@ async function _start(): Promise<PgBoss> {
 
   try {
     await boss.start();
+    // Queue must exist before insert() or work() — createQueue uses ON CONFLICT DO NOTHING so this is safe to call on every start.
+    await boss.createQueue(EMAIL_QUEUE);
   } catch (err) {
     // Reset so the next getBoss() call can attempt a fresh start rather than returning a permanently rejected promise to all callers.
     _startPromise = null;
@@ -32,9 +39,4 @@ async function _start(): Promise<PgBoss> {
 
   g.boss = boss;
   return boss;
-}
-
-/* Canonical queue name for a tenant's outbound email queue. Defined once here so schedule.ts and the worker reference the same pattern. */
-export function emailQueueName(tenantId: string): string {
-  return `send-email-${tenantId}`;
 }

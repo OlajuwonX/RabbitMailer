@@ -1,7 +1,7 @@
 import "server-only";
 import type { JobInsert } from "pg-boss";
 import type { EmailJob } from "@repo/shared-types";
-import { getBoss, emailQueueName } from "./boss";
+import { getBoss, EMAIL_QUEUE } from "./boss";
 
 // 1 email per 2 minutes = 30 emails per hour per tenant. Enforced by pre-calculating send times at queue time, not with a runtime limiter.
 const SEND_INTERVAL_MS = 2 * 60 * 1000;
@@ -48,7 +48,7 @@ export async function scheduleCampaignEmails({
   }));
 
   // boss.insert() sends all jobs in one SQL statement — far more efficient than calling boss.send() N times, especially for large recipient lists.
-  const ids = await boss.insert(emailQueueName(tenantId), jobs);
+  const ids = await boss.insert(EMAIL_QUEUE, jobs);
 
   if (ids === null) {
     // pg-boss returns null when the queue is blocked or the insert is rejected. Throw so sendCampaignAction can surface the failure instead of silently leaving recipients unscheduled.
