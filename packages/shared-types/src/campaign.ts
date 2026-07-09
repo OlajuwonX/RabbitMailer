@@ -8,7 +8,13 @@ export type CampaignStatus =
 
 export type RotationStrategy = "sequential" | "random";
 
-export type RecipientStatus = "pending" | "sent" | "bounced" | "unsubscribed";
+export type RecipientStatus =
+  | "pending"
+  | "sent"
+  | "opened"
+  | "clicked"
+  | "bounced"
+  | "unsubscribed";
 
 export type EngagementType =
   | "open"
@@ -47,6 +53,8 @@ export interface Recipient {
   templateId: string | null;
   status: RecipientStatus;
   sentAt: Date | null;
+  openedAt: Date | null;
+  clickedAt: Date | null;
   createdAt: Date;
 }
 

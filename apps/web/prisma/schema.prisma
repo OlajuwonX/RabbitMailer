@@ -20,6 +20,8 @@ enum CampaignStatus {
 enum RecipientStatus {
   pending
   sent
+  opened
+  clicked
   bounced
   unsubscribed
 }
@@ -170,6 +172,8 @@ model Recipient {
   templateId String?
   status     RecipientStatus @default(pending)
   sentAt     DateTime?
+  openedAt   DateTime?
+  clickedAt  DateTime?
   createdAt  DateTime        @default(now())
 
   campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
