@@ -2,13 +2,17 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { getPrisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
+import { EMAIL_QUEUE } from "@/lib/queue/boss";
+import { scheduleCampaignEmails } from "@/lib/queue/schedule";
 import type {
   ActionResult,
   Campaign,
   CreateCampaignInput,
   UpdateCampaignInput,
+  QueueCounts,
 } from "@repo/shared-types";
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
@@ -217,5 +221,179 @@ export async function deleteCampaignAction(
   } catch (err) {
     console.error("deleteCampaignAction:", err);
     return { success: false, error: "Failed to delete campaign" };
+  }
+}
+
+export async function sendCampaignAction(
+  campaignId: string,
+): Promise<ActionResult<{ jobsQueued: number }>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const prisma = await getPrisma();
+
+    const campaign = await prisma.campaign.findFirst({
+      where: { id: campaignId, userId: user.id },
+      select: { id: true, status: true, rotationStrategy: true, scheduledFor: true },
+    });
+    if (!campaign) return { success: false, error: "Campaign not found" };
+    if (campaign.status !== "draft" && campaign.status !== "paused") {
+      return {
+        success: false,
+        error: "Campaign must be in draft or paused status to send",
+      };
+    }
+
+    // Load pending recipients in creation order — order matters for sequential rotation
+    const pendingRecipients = await prisma.recipient.findMany({
+      where: { campaignId, status: "pending" },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    });
+    if (pendingRecipients.length === 0) {
+      return { success: false, error: "No pending recipients found" };
+    }
+
+    // Load templates in the order they were linked (order field set at campaign create)
+    const campaignTemplates = await prisma.campaignTemplate.findMany({
+      where: { campaignId },
+      orderBy: { order: "asc" },
+      select: { templateId: true },
+    });
+    if (campaignTemplates.length === 0) {
+      return { success: false, error: "No templates linked to this campaign" };
+    }
+
+    const templateIds = campaignTemplates.map((ct) => ct.templateId);
+
+    // Assign a templateId to every recipient according to the rotation strategy.
+    // Done in memory — no DB round trips per recipient.
+    const recipientsWithTemplates = pendingRecipients.map((r, index) => ({
+      id: r.id,
+      templateId:
+        campaign.rotationStrategy === "sequential"
+          ? templateIds[index % templateIds.length]!
+          : templateIds[Math.floor(Math.random() * templateIds.length)]!,
+    }));
+
+    // Persist assignments: group by templateId so we do O(templates) updateMany
+    // calls instead of O(recipients) individual updates.
+    const byTemplate = new Map<string, string[]>();
+    for (const r of recipientsWithTemplates) {
+      const group = byTemplate.get(r.templateId) ?? [];
+      group.push(r.id);
+      byTemplate.set(r.templateId, group);
+    }
+    await Promise.all(
+      [...byTemplate.entries()].map(([templateId, ids]) =>
+        prisma.recipient.updateMany({
+          where: { id: { in: ids } },
+          data: { templateId },
+        }),
+      ),
+    );
+
+    // Schedule all jobs in one pg-boss bulk insert. startAfter times are
+    // pre-calculated here so the 30 emails/hour rate is enforced without any
+    // runtime limiter. Honour scheduledFor if the campaign has a future start time.
+    const startAt =
+      campaign.scheduledFor && campaign.scheduledFor > new Date()
+        ? campaign.scheduledFor.getTime()
+        : undefined;
+
+    await scheduleCampaignEmails({
+      tenantId: user.tenantId,
+      campaignId,
+      recipients: recipientsWithTemplates,
+      startAt,
+    });
+
+    await prisma.campaign.update({
+      where: { id: campaignId },
+      data: { status: "sending", startedAt: new Date() },
+    });
+
+    revalidatePath("/campaigns");
+    revalidatePath(`/campaigns/${campaignId}`);
+    return { success: true, data: { jobsQueued: pendingRecipients.length } };
+  } catch (err) {
+    console.error("sendCampaignAction:", err);
+    return { success: false, error: "Failed to start campaign" };
+  }
+}
+
+export async function pauseCampaignAction(
+  campaignId: string,
+): Promise<ActionResult> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const prisma = await getPrisma();
+
+    const campaign = await prisma.campaign.findFirst({
+      where: { id: campaignId, userId: user.id },
+      select: { status: true },
+    });
+    if (!campaign) return { success: false, error: "Campaign not found" };
+    if (campaign.status !== "sending") {
+      return { success: false, error: "Only sending campaigns can be paused" };
+    }
+
+    // Jobs already in the pg-boss queue continue processing — pause only
+    // prevents new jobs from being scheduled if sendCampaignAction is called again.
+    await prisma.campaign.update({
+      where: { id: campaignId },
+      data: { status: "paused" },
+    });
+
+    revalidatePath("/campaigns");
+    revalidatePath(`/campaigns/${campaignId}`);
+    return { success: true };
+  } catch (err) {
+    console.error("pauseCampaignAction:", err);
+    return { success: false, error: "Failed to pause campaign" };
+  }
+}
+
+// Called by the QueueStatusWidget Client Component on a polling interval.
+// Returns live pg-boss counts — no revalidation needed.
+// pg-boss v12 does not expose a countStates() method, so we query the
+// pgboss.job table directly. $queryRaw bypasses $extends — no tenant filter
+// needed here since queue counts are infrastructure-level metrics.
+export async function getQueueStatusAction(): Promise<QueueCounts> {
+  try {
+    void (await headers()).get("x-tenant-id"); // confirms request context is live
+    const prisma = await getPrisma();
+
+    const rows = await prisma.$queryRaw<Array<{ state: string; count: number }>>`
+      SELECT state, COUNT(*)::int AS count
+      FROM pgboss.job
+      WHERE name = ${EMAIL_QUEUE}
+      GROUP BY state
+    `;
+
+    const s = Object.fromEntries(rows.map((r) => [r.state, r.count]));
+    const pending = (s.created ?? 0) + (s.retry ?? 0);
+    const active = s.active ?? 0;
+    const completed = s.completed ?? 0;
+    const failed = s.failed ?? 0;
+    const cancelled = s.cancelled ?? 0;
+    const total = pending + active + completed + failed + cancelled;
+
+    const remaining = pending + active;
+    const estimatedCompletionAt =
+      remaining > 0 ? new Date(Date.now() + remaining * 2 * 60 * 1000) : null;
+
+    return {
+      pending: pending + active,
+      sent: completed,
+      failed,
+      total,
+      estimatedCompletionAt,
+    };
+  } catch {
+    return { pending: 0, sent: 0, failed: 0, total: 0, estimatedCompletionAt: null };
   }
 }

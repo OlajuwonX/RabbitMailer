@@ -13,9 +13,10 @@ const RETRY_DELAY_SECONDS = 30;
 export interface ScheduleEmailsOptions {
   tenantId: string;
   campaignId: string;
-  templateId: string;
-  /* Subset of recipients to schedule — caller loads them from the DB. */
-  recipients: ReadonlyArray<{ id: string }>;
+  // Each recipient carries its own templateId — rotation is decided by
+  // sendCampaignAction before this function is called, so scheduling stays
+  // unaware of rotation strategy and remains a pure bulk-insert.
+  recipients: ReadonlyArray<{ id: string; templateId: string }>;
   /* Unix-epoch timestamp (ms) for the first email. Pass `scheduledFor.getTime()` for future-dated campaigns; omit for "send now".*/
   startAt?: number;
 }
@@ -24,7 +25,6 @@ export interface ScheduleEmailsOptions {
 export async function scheduleCampaignEmails({
   tenantId,
   campaignId,
-  templateId,
   recipients,
   startAt,
 }: ScheduleEmailsOptions): Promise<void> {
@@ -39,7 +39,7 @@ export async function scheduleCampaignEmails({
       tenantId,
       recipientId: recipient.id,
       campaignId,
-      templateId,
+      templateId: recipient.templateId,
     },
     // Each recipient gets a discrete send time; index 0 fires immediately (or at startAt), index 1 fires 2 min later, index 2 fires 4 min later, and so on.
     startAfter: new Date(base + index * SEND_INTERVAL_MS),
