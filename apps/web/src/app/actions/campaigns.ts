@@ -71,7 +71,10 @@ export async function createCampaignAction(
     ].filter((e) => e.length > 0);
 
     if (uniqueEmails.length === 0) {
-      return { success: false, error: "At least one valid recipient is required" };
+      return {
+        success: false,
+        error: "At least one valid recipient is required",
+      };
     }
 
     // Collect ALL invalid addresses — return them together so the user can fix
@@ -185,9 +188,7 @@ export async function updateCampaignAction(
   }
 }
 
-export async function deleteCampaignAction(
-  id: string,
-): Promise<ActionResult> {
+export async function deleteCampaignAction(id: string): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: "Unauthorized" };
@@ -235,7 +236,12 @@ export async function sendCampaignAction(
 
     const campaign = await prisma.campaign.findFirst({
       where: { id: campaignId, userId: user.id },
-      select: { id: true, status: true, rotationStrategy: true, scheduledFor: true },
+      select: {
+        id: true,
+        status: true,
+        rotationStrategy: true,
+        scheduledFor: true,
+      },
     });
     if (!campaign) return { success: false, error: "Campaign not found" };
     if (campaign.status !== "draft" && campaign.status !== "paused") {
@@ -367,7 +373,9 @@ export async function getQueueStatusAction(): Promise<QueueCounts> {
     void (await headers()).get("x-tenant-id"); // confirms request context is live
     const prisma = await getPrisma();
 
-    const rows = await prisma.$queryRaw<Array<{ state: string; count: number }>>`
+    const rows = await prisma.$queryRaw<
+      Array<{ state: string; count: number }>
+    >`
       SELECT state, COUNT(*)::int AS count
       FROM pgboss.job
       WHERE name = ${EMAIL_QUEUE}
@@ -394,6 +402,12 @@ export async function getQueueStatusAction(): Promise<QueueCounts> {
       estimatedCompletionAt,
     };
   } catch {
-    return { pending: 0, sent: 0, failed: 0, total: 0, estimatedCompletionAt: null };
+    return {
+      pending: 0,
+      sent: 0,
+      failed: 0,
+      total: 0,
+      estimatedCompletionAt: null,
+    };
   }
 }

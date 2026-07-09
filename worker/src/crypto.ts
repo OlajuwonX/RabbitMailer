@@ -1,8 +1,4 @@
-import {
-  randomBytes,
-  createCipheriv,
-  createDecipheriv,
-} from "node:crypto";
+import { randomBytes, createCipheriv, createDecipheriv } from "node:crypto";
 
 // Reads and validates the 256-bit AES key on every call so a bad key value surfaces immediately rather than silently failing mid-job.
 function getKey(): Buffer {

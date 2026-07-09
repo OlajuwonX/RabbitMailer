@@ -31,7 +31,10 @@ export function SessionRefresher() {
             // The refresh route may have already rotated the token — check
             // whether a fresh session_exp was set before forcing logout.
             const freshExp = readSessionExp();
-            if (freshExp && freshExp - Math.floor(Date.now() / 1000) > REFRESH_BUFFER_SECONDS) {
+            if (
+              freshExp &&
+              freshExp - Math.floor(Date.now() / 1000) > REFRESH_BUFFER_SECONDS
+            ) {
               return; // A concurrent refresh already renewed the session.
             }
           }

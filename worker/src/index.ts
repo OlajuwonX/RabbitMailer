@@ -18,7 +18,8 @@ async function processEmail(job: JobWithMetadata<EmailJob>): Promise<void> {
   const prisma = getScopedPrisma(tenantId);
 
   try {
-    const { transporter, fromAddress, host } = await createTransporterForTenant(tenantId);
+    const { transporter, fromAddress, host } =
+      await createTransporterForTenant(tenantId);
 
     const [template, recipient] = await Promise.all([
       prisma.template.findFirst({ where: { id: templateId } }),
@@ -40,7 +41,10 @@ async function processEmail(job: JobWithMetadata<EmailJob>): Promise<void> {
       to: recipient.email,
       subject: template.subject,
       html: trackedHtml,
-      text: trackedHtml.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+      text: trackedHtml
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
       headers: {
         "X-Campaign-Id": campaignId,
         "X-Template-Id": templateId,

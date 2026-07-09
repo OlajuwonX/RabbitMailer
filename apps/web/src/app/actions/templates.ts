@@ -11,7 +11,7 @@ import type {
   UpdateTemplateInput,
 } from "@repo/shared-types";
 
-// HTML sanitization (no external dep — runs server-side only) 
+// HTML sanitization (no external dep — runs server-side only)
 
 // Removes constructs that could execute JS if the HTML is ever rendered without escaping: script blocks, on* event attributes, and javascript: pseudo-schemes.
 function sanitizeHtml(html: string): string {
@@ -22,7 +22,7 @@ function sanitizeHtml(html: string): string {
     .replace(/javascript\s*:/gi, "#");
 }
 
-// Zod schemas 
+// Zod schemas
 
 const createSchema = z.object({
   // name is optional — falls back to subject if omitted
@@ -49,7 +49,7 @@ const bulkItemSchema = z.object({
   body: z.string().min(1, "Body is required"),
 });
 
-// Server Actions 
+// Server Actions
 
 export async function createTemplateAction(
   input: CreateTemplateInput,
@@ -71,7 +71,13 @@ export async function createTemplateAction(
     const prisma = await getPrisma();
 
     const template = await prisma.template.create({
-      data: { tenantId: user.tenantId, name, subject, body: sanitizeHtml(body), userId: user.id },
+      data: {
+        tenantId: user.tenantId,
+        name,
+        subject,
+        body: sanitizeHtml(body),
+        userId: user.id,
+      },
     });
 
     revalidatePath("/templates");
@@ -124,9 +130,7 @@ export async function updateTemplateAction(
   }
 }
 
-export async function deleteTemplateAction(
-  id: string,
-): Promise<ActionResult> {
+export async function deleteTemplateAction(id: string): Promise<ActionResult> {
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: "Unauthorized" };

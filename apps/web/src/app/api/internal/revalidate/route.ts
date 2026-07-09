@@ -10,7 +10,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const body = await request.json().catch(() => null);
-  const campaignId = typeof body?.campaignId === "string" ? body.campaignId : null;
+  const campaignId =
+    typeof body?.campaignId === "string" ? body.campaignId : null;
 
   revalidatePath("/campaigns");
   if (campaignId) {

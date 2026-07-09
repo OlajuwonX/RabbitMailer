@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-import { headers } from "next/headers";
 import { getPrisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";

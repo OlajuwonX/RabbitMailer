@@ -11,11 +11,7 @@ import { createSession, deleteSession } from "@/lib/auth/session";
 function safeNext(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
   // Prevent loops back into auth paths
-  if (
-    raw === "/login" ||
-    raw === "/signup" ||
-    raw.startsWith("/api/auth/")
-  )
+  if (raw === "/login" || raw === "/signup" || raw.startsWith("/api/auth/"))
     return "/dashboard";
   return raw;
 }

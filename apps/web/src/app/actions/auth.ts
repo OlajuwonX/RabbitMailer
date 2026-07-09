@@ -52,7 +52,10 @@ export async function signupAction(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await validateCsrf(formData))) {
-    return { success: false, error: "Invalid request. Please refresh and try again." };
+    return {
+      success: false,
+      error: "Invalid request. Please refresh and try again.",
+    };
   }
 
   const parsed = signupSchema.safeParse({
@@ -119,7 +122,10 @@ export async function loginAction(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!(await validateCsrf(formData))) {
-    return { success: false, error: "Invalid request. Please refresh and try again." };
+    return {
+      success: false,
+      error: "Invalid request. Please refresh and try again.",
+    };
   }
 
   const parsed = loginSchema.safeParse({
