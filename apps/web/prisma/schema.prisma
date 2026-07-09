@@ -23,6 +23,7 @@ enum RecipientStatus {
   opened
   clicked
   bounced
+  spam
   unsubscribed
 }
 

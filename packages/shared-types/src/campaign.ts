@@ -14,6 +14,7 @@ export type RecipientStatus =
   | "opened"
   | "clicked"
   | "bounced"
+  | "spam"
   | "unsubscribed";
 
 export type EngagementType =
