@@ -6,6 +6,8 @@ export type CampaignStatus =
   | "completed"
   | "failed";
 
+export type RotationStrategy = "sequential" | "random";
+
 export type RecipientStatus = "pending" | "sent" | "bounced" | "unsubscribed";
 
 export type EngagementType =
@@ -21,6 +23,7 @@ export interface Campaign {
   userId: string;
   name: string;
   status: CampaignStatus;
+  rotationStrategy: RotationStrategy;
   totalRecipients: number;
   sentCount: number;
   openCount: number;
@@ -41,6 +44,7 @@ export interface Recipient {
   campaignId: string;
   email: string;
   name: string | null;
+  templateId: string | null;
   status: RecipientStatus;
   sentAt: Date | null;
   createdAt: Date;
@@ -63,6 +67,7 @@ export interface CreateCampaignInput {
   name: string;
   templateIds: string[];
   recipientEmails: string[];
+  rotationStrategy: RotationStrategy;
   scheduledFor?: Date;
 }
 

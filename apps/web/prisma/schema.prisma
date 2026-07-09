@@ -32,6 +32,11 @@ enum EngagementType {
   unsubscribe
 }
 
+enum RotationStrategy {
+  sequential
+  random
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 // Hostname → tenantId routing lookup. NOT tenant-scoped — it is the source of tenant identity.
@@ -118,8 +123,9 @@ model Campaign {
   tenantId         String
   userId           String
   name             String
-  status           CampaignStatus @default(draft)
-  totalRecipients  Int            @default(0)
+  status           CampaignStatus   @default(draft)
+  rotationStrategy RotationStrategy @default(sequential)
+  totalRecipients  Int              @default(0)
   sentCount        Int            @default(0)
   openCount        Int            @default(0)
   clickCount       Int            @default(0)
@@ -161,6 +167,7 @@ model Recipient {
   campaignId String
   email      String
   name       String?
+  templateId String?
   status     RecipientStatus @default(pending)
   sentAt     DateTime?
   createdAt  DateTime        @default(now())
