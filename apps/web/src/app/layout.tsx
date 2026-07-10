@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { SessionRefresher } from "@/components/auth/session-refresher";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { QueryProvider } from "@/providers/query-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,13 +31,19 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="dark">
+    // suppressHydrationMismatch: ThemeProvider may change className on the client
+    // (dark → light) — suppress the one-time SSR/hydration diff.
+    <html lang="en" className="dark" suppressHydrationMismatch>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-(family-name:--font-geist-sans)`}
       >
-        <SessionRefresher />
-        <ToastProvider />
-        {children}
+        <QueryProvider>
+          <ThemeProvider>
+            <SessionRefresher />
+            <ToastProvider />
+            {children}
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );
