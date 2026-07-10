@@ -31,9 +31,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    // suppressHydrationMismatch: ThemeProvider may change className on the client
+    // suppressHydrationWarning: ThemeProvider may change className on the client
     // (dark → light) — suppress the one-time SSR/hydration diff.
-    <html lang="en" className="dark" suppressHydrationMismatch>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-(family-name:--font-geist-sans)`}
       >
