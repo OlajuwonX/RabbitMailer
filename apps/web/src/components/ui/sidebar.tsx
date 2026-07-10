@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import {
   LayoutDashboard,
   Mail,
@@ -45,13 +45,17 @@ export function Sidebar({ user }: SidebarProps) {
     setSidebarOpen(window.innerWidth >= 768);
   }, [setSidebarOpen]);
 
+  // Stable reference — setSidebarOpen from Zustand never changes, so this
+  // callback is created once and avoids allocating a new function every render.
+  const closeOnMobile = useCallback(() => setSidebarOpen(false), [setSidebarOpen]);
+
   return (
     <>
       {/* Mobile backdrop — tap to close */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/60 md:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeOnMobile}
           aria-hidden
         />
       )}

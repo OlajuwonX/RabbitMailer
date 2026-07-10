@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { useUiStore } from "@/lib/store/ui-store";
@@ -27,7 +28,8 @@ function getTitle(pathname: string): string {
 export function Header() {
   const pathname = usePathname();
   const { toggleSidebar } = useUiStore();
-  const title = getTitle(pathname);
+  // Recompute only when the route changes, not on unrelated store updates.
+  const title = useMemo(() => getTitle(pathname), [pathname]);
 
   return (
     <header className="sticky top-0 z-20 flex items-center h-14 px-4 gap-3 border-b border-white/7 bg-[#07070f]/80 backdrop-blur-2xl shrink-0">
