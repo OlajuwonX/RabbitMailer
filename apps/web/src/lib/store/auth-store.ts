@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (isLoading) => set({ isLoading }),
     }),
     {
-      name: "rabbit-auth",
+      name: "rabbitmailer-auth",
       // Only persist the user object — never tokens or loading state
       partialize: (state) => ({
         user: state.user,

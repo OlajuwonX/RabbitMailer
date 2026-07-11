@@ -57,8 +57,17 @@ export function LoginForm({ csrfToken }: { csrfToken: string }) {
             placeholder="••••••••"
           />
 
+          <div className="flex justify-end -mt-1">
+            <span className="text-xs text-slate-600 cursor-not-allowed select-none">
+              Forgot password?
+            </span>
+          </div>
+
           {!state.success && (
-            <div className="flex items-start gap-2.5 rounded-xl bg-red-950/40 border border-red-500/20 px-4 py-3">
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-xl bg-red-950/40 border border-red-500/20 px-4 py-3"
+            >
               <svg
                 className="shrink-0 h-4 w-4 text-red-400 mt-0.5"
                 viewBox="0 0 20 20"
