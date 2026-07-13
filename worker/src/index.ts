@@ -50,6 +50,13 @@ async function processEmail(job: JobWithMetadata<EmailJob>): Promise<void> {
         "X-Template-Id": templateId,
         "X-Recipient-Id": recipientId,
         "X-Tenant-Id": tenantId,
+        "X-SMTPAPI": JSON.stringify({
+          unique_args: {
+            campaignId,
+            recipientId,
+            tenantId,
+          },
+        }),
       },
     });
 

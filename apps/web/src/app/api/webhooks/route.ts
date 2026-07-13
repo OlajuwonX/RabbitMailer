@@ -28,6 +28,8 @@ function verifySignature(
 interface SendGridEvent {
   event: string;
   email: string;
+  campaignId?: unknown;
+  recipientId?: unknown;
   timestamp?: number;
   [key: string]: unknown;
 }
@@ -35,6 +37,11 @@ interface SendGridEvent {
 // ─── Terminal statuses — never downgrade a recipient out of these ─────────────
 
 const TERMINAL: RecipientStatus[] = ["bounced", "spam", "unsubscribed"];
+const VALID_ID = /^[a-zA-Z0-9_-]{20,36}$/;
+
+function isValidId(id: unknown): id is string {
+  return typeof id === "string" && VALID_ID.test(id);
+}
 
 // ─── Per-event handler ────────────────────────────────────────────────────────
 
@@ -71,6 +78,11 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Verify SendGrid signature when the signing key is configured.
   // Fail-closed: if the key is set but the signature is missing or wrong, reject.
   const signingKey = process.env.SENDGRID_WEBHOOK_SIGNING_KEY;
+  if (!signingKey && process.env.NODE_ENV === "production") {
+    return new Response("Webhook signing key is not configured", {
+      status: 500,
+    });
+  }
   if (signingKey) {
     const signature = request.headers.get(
       "x-twilio-email-event-webhook-signature",
@@ -108,10 +120,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (!config || typeof event.email !== "string" || !event.email) continue;
 
     try {
-      // Find all recipients with this email for this tenant that haven't
-      // already reached a terminal state (avoid downgrading bounced → spam etc.)
+      if (!isValidId(event.campaignId) || !isValidId(event.recipientId)) {
+        continue;
+      }
+
+      // Match the exact recipient that generated the provider event. Matching
+      // by email alone would corrupt other campaigns sent to the same address.
       const recipients = await prisma.recipient.findMany({
         where: {
+          id: event.recipientId,
+          campaignId: event.campaignId,
           email: event.email.toLowerCase(),
           tenantId,
           status: { notIn: TERMINAL },

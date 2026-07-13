@@ -24,11 +24,24 @@ export function QueueStatusWidget({ initialCounts }: QueueStatusWidgetProps) {
   const [counts, setCounts] = useState<QueueCounts>(initialCounts);
 
   useEffect(() => {
-    const id = setInterval(async () => {
+    let disposed = false;
+    let requestId = 0;
+
+    async function refreshCounts() {
+      const currentRequest = ++requestId;
       const fresh = await getQueueStatusAction();
-      setCounts(fresh);
+      if (!disposed && currentRequest === requestId) {
+        setCounts(fresh);
+      }
+    }
+
+    const id = setInterval(async () => {
+      await refreshCounts();
     }, POLL_MS);
-    return () => clearInterval(id);
+    return () => {
+      disposed = true;
+      clearInterval(id);
+    };
   }, []);
 
   const isIdle = counts.pending === 0;

@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 import { getPrisma } from "@/lib/db/prisma";
 
 // 1×1 transparent GIF — returned on every request, success or failure. Email clients must never receive an error response from a tracking pixel.

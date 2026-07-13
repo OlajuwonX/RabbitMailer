@@ -228,6 +228,10 @@ export async function deleteCampaignAction(id: string): Promise<ActionResult> {
 export async function sendCampaignAction(
   campaignId: string,
 ): Promise<ActionResult<{ jobsQueued: number }>> {
+  let lockedCampaign:
+    | { id: string; status: "draft" | "paused"; userId: string }
+    | null = null;
+
   try {
     const user = await getCurrentUser();
     if (!user) return { success: false, error: "Unauthorized" };
@@ -250,6 +254,26 @@ export async function sendCampaignAction(
         error: "Campaign must be in draft or paused status to send",
       };
     }
+
+    const lock = await prisma.campaign.updateMany({
+      where: {
+        id: campaignId,
+        userId: user.id,
+        status: campaign.status,
+      },
+      data: { status: "queued" },
+    });
+    if (lock.count !== 1) {
+      return {
+        success: false,
+        error: "Campaign is already being queued or sent",
+      };
+    }
+    lockedCampaign = {
+      id: campaignId,
+      status: campaign.status,
+      userId: user.id,
+    };
 
     // Load pending recipients in creation order — order matters for sequential rotation
     const pendingRecipients = await prisma.recipient.findMany({
@@ -319,11 +343,27 @@ export async function sendCampaignAction(
       where: { id: campaignId },
       data: { status: "sending", startedAt: new Date() },
     });
+    lockedCampaign = null;
 
     revalidatePath("/campaigns");
     revalidatePath(`/campaigns/${campaignId}`);
     return { success: true, data: { jobsQueued: pendingRecipients.length } };
   } catch (err) {
+    if (lockedCampaign) {
+      try {
+        const prisma = await getPrisma();
+        await prisma.campaign.updateMany({
+          where: {
+            id: lockedCampaign.id,
+            userId: lockedCampaign.userId,
+            status: "queued",
+          },
+          data: { status: lockedCampaign.status },
+        });
+      } catch (rollbackErr) {
+        console.error("sendCampaignAction rollback:", rollbackErr);
+      }
+    }
     console.error("sendCampaignAction:", err);
     return { success: false, error: "Failed to start campaign" };
   }
@@ -370,6 +410,16 @@ export async function pauseCampaignAction(
 // needed here since queue counts are infrastructure-level metrics.
 export async function getQueueStatusAction(): Promise<QueueCounts> {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return {
+        pending: 0,
+        sent: 0,
+        failed: 0,
+        total: 0,
+        estimatedCompletionAt: null,
+      };
+    }
     void (await headers()).get("x-tenant-id"); // confirms request context is live
     const prisma = await getPrisma();
 
@@ -379,6 +429,7 @@ export async function getQueueStatusAction(): Promise<QueueCounts> {
       SELECT state, COUNT(*)::int AS count
       FROM pgboss.job
       WHERE name = ${EMAIL_QUEUE}
+        AND data->>'tenantId' = ${user.tenantId}
       GROUP BY state
     `;
 

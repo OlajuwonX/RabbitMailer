@@ -200,8 +200,15 @@ export function LinearInput({
   hint,
   className,
   id,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: LinearInputProps) {
+  const hintId = hint && id ? `${id}-hint` : undefined;
+  const errorId = error && id ? `${id}-error` : undefined;
+  const describedBy = [ariaDescribedBy, errorId, !error ? hintId : undefined]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="space-y-1.5">
       {label && (
@@ -214,6 +221,8 @@ export function LinearInput({
       )}
       <input
         id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy || undefined}
         className={cn(
           "w-full px-3.5 py-2.5 rounded-xl text-sm",
           "bg-white/4 backdrop-blur-sm",
@@ -229,8 +238,16 @@ export function LinearInput({
         )}
         {...props}
       />
-      {error && <p className="text-xs text-red-400">{error}</p>}
-      {hint && !error && <p className="text-xs text-slate-500">{hint}</p>}
+      {error && (
+        <p id={errorId} className="text-xs text-red-400">
+          {error}
+        </p>
+      )}
+      {hint && !error && (
+        <p id={hintId} className="text-xs text-slate-500">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
