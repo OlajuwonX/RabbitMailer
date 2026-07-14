@@ -9,9 +9,12 @@ export function useAuth() {
   const router = useRouter();
 
   async function logout() {
-    clearUser(); // Clear Zustand state before the server redirect fires
-    await logoutAction();
-    router.replace("/login");
+    try {
+      await logoutAction();
+    } finally {
+      clearUser();
+      router.replace("/login");
+    }
   }
 
   return { user, isAuthenticated, logout };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { signupAction } from "@/app/actions/auth";
@@ -15,6 +16,22 @@ import { cn } from "@/lib/utils/cn";
 import type { ActionResult } from "@repo/shared-types";
 
 const initialState: ActionResult = { success: true };
+
+function SubmitButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <LinearButton
+      type="submit"
+      fullWidth
+      loading={pending}
+      size="md"
+      disabled={pending || disabled}
+    >
+      {pending ? "Creating account…" : "Create account"}
+    </LinearButton>
+  );
+}
 
 // ─── Password strength ────────────────────────────────────────────────────────
 
@@ -56,15 +73,13 @@ function PasswordStrengthBar({ password }: { password: string }) {
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 export function SignupForm({ csrfToken }: { csrfToken: string }) {
-  const [state, formAction, isPending] = useActionState(
-    signupAction,
-    initialState,
-  );
+  const [state, formAction] = useActionState(signupAction, initialState);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
   // Show mismatch error only after the user has started typing in confirm field
   const mismatch = confirm.length > 0 && password !== confirm;
+  const formError = !state.success ? state.error : undefined;
 
   useEffect(() => {
     if (!state.success && state.error) {
@@ -90,6 +105,7 @@ export function SignupForm({ csrfToken }: { csrfToken: string }) {
             autoComplete="name"
             required
             placeholder="Jane Smith"
+            error={formError}
           />
 
           <LinearInput
@@ -100,6 +116,7 @@ export function SignupForm({ csrfToken }: { csrfToken: string }) {
             autoComplete="email"
             required
             placeholder="you@example.com"
+            error={formError}
           />
 
           {/* Password field + strength bar */}
@@ -113,6 +130,7 @@ export function SignupForm({ csrfToken }: { csrfToken: string }) {
               placeholder="Min. 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              error={formError}
             />
             <PasswordStrengthBar password={password} />
           </div>
@@ -152,15 +170,7 @@ export function SignupForm({ csrfToken }: { csrfToken: string }) {
           )}
 
           {/* Disabled when passwords are visibly mismatched */}
-          <LinearButton
-            type="submit"
-            fullWidth
-            loading={isPending}
-            size="md"
-            disabled={isPending || mismatch}
-          >
-            {isPending ? "Creating account…" : "Create account"}
-          </LinearButton>
+          <SubmitButton disabled={mismatch} />
         </form>
 
         <p className="text-center text-sm text-slate-500">

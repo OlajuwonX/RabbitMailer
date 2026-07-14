@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Header } from "@/components/ui/header";
+import { AuthHydrator } from "@/components/auth/auth-hydrator";
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,14 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <AuthHydrator
+        user={{
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin,
+        }}
+      />
       <Sidebar user={{ name: user.name, email: user.email }} />
 
       {/* Right column: header + scrollable content */}

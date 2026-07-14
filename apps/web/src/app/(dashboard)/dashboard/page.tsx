@@ -1,15 +1,15 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import {
-  LayoutDashboard,
   Mail,
   MousePointerClick,
+  ShieldAlert,
   TrendingUp,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrisma } from "@/lib/db/prisma";
 import { getQueueStatusAction } from "@/app/actions/campaigns";
-import { LinearTitle } from "@/components/ui/linear";
+import { LinearBadge, LinearTitle } from "@/components/ui/linear";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { TableBodySkeleton } from "@/components/shared/skeletons";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
@@ -19,9 +19,10 @@ import type { Campaign } from "@repo/shared-types";
 
 // ─── Recent campaigns — isolated async section for Suspense streaming ─────────
 
-async function RecentCampaignsSection() {
+async function RecentCampaignsSection({ userId }: { userId: string }) {
   const prisma = await getPrisma();
   const campaigns = await prisma.campaign.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: 5,
   });
@@ -52,20 +53,28 @@ export default async function DashboardPage() {
   const totalSent   = totals._sum.sentCount   ?? 0;
   const totalOpens  = totals._sum.openCount   ?? 0;
   const totalClicks = totals._sum.clickCount  ?? 0;
+  const totalBounces = totals._sum.bounceCount ?? 0;
 
   const openRate   = totalSent > 0 ? ((totalOpens  / totalSent) * 100).toFixed(1) + "%" : "—";
   const clickRate  = totalSent > 0 ? ((totalClicks / totalSent) * 100).toFixed(1) + "%" : "—";
+  const bounceRate =
+    totalSent > 0 ? ((totalBounces / totalSent) * 100).toFixed(1) + "%" : "—";
 
   return (
     <div className="p-6 space-y-8">
       {/* Page header */}
-      <div className="space-y-1">
-        <LinearTitle gradient size="lg" as="h1">
-          Welcome back, {user.name}
-        </LinearTitle>
-        <p className="text-slate-500 text-sm">
-          Here&apos;s an overview of your sending activity.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <LinearTitle gradient size="lg" as="h1">
+            Welcome back, {user.name}
+          </LinearTitle>
+          <p className="text-slate-500 text-sm">
+            Here&apos;s an overview of your sending activity.
+          </p>
+        </div>
+        <LinearBadge variant={activeCampaigns > 0 ? "info" : "default"}>
+          {activeCampaigns} active
+        </LinearBadge>
       </div>
 
       {/* KPI row */}
@@ -88,9 +97,10 @@ export default async function DashboardPage() {
           icon={<MousePointerClick className="h-4 w-4" />}
         />
         <KpiCard
-          title="Active campaigns"
-          value={activeCampaigns}
-          icon={<LayoutDashboard className="h-4 w-4" />}
+          title="Bounce rate"
+          value={bounceRate}
+          subtitle={`${totalBounces.toLocaleString()} bounces`}
+          icon={<ShieldAlert className="h-4 w-4" />}
         />
       </div>
 
@@ -106,7 +116,7 @@ export default async function DashboardPage() {
             </div>
           }
         >
-          <RecentCampaignsSection />
+          <RecentCampaignsSection userId={user.id} />
         </Suspense>
       </ErrorBoundary>
     </div>

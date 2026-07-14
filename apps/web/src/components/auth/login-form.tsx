@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { loginAction } from "@/app/actions/auth";
@@ -15,11 +16,19 @@ import type { ActionResult } from "@repo/shared-types";
 
 const initialState: ActionResult = { success: true };
 
-export function LoginForm({ csrfToken }: { csrfToken: string }) {
-  const [state, formAction, isPending] = useActionState(
-    loginAction,
-    initialState,
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <LinearButton type="submit" fullWidth loading={pending} size="md">
+      {pending ? "Signing in…" : "Sign in"}
+    </LinearButton>
   );
+}
+
+export function LoginForm({ csrfToken }: { csrfToken: string }) {
+  const [state, formAction] = useActionState(loginAction, initialState);
+  const formError = !state.success ? state.error : undefined;
 
   useEffect(() => {
     if (!state.success && state.error) {
@@ -46,6 +55,7 @@ export function LoginForm({ csrfToken }: { csrfToken: string }) {
             autoComplete="email"
             required
             placeholder="you@example.com"
+            error={formError}
           />
 
           <LinearPasswordInput
@@ -55,6 +65,7 @@ export function LoginForm({ csrfToken }: { csrfToken: string }) {
             autoComplete="current-password"
             required
             placeholder="••••••••"
+            error={formError}
           />
 
           <div className="flex justify-end -mt-1">
@@ -84,9 +95,7 @@ export function LoginForm({ csrfToken }: { csrfToken: string }) {
             </div>
           )}
 
-          <LinearButton type="submit" fullWidth loading={isPending} size="md">
-            {isPending ? "Signing in…" : "Sign in"}
-          </LinearButton>
+          <SubmitButton />
         </form>
 
         <p className="text-center text-sm text-slate-500">
