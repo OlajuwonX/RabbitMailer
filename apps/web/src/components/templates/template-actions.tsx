@@ -1,10 +1,10 @@
 "use client";
 
-import { FileUp, Plus } from "lucide-react";
 import { BulkImportForm } from "@/components/forms/bulk-import-form";
 import { TemplateForm } from "@/components/forms/template-form";
 import { LinearButton } from "@/components/ui/linear";
 import { useUiStore } from "@/lib/store/ui-store";
+import { FileUp, Plus } from "lucide-react";
 import { TemplateDialog } from "./template-dialog";
 
 const NEW_MODAL = "template:new";
@@ -56,17 +56,17 @@ export function BulkImportButton() {
   );
 }
 
-export function NewTemplateEmptyAction() {
-  const openModal = useUiStore((state) => state.openModal);
+// export function NewTemplateEmptyAction() {
+//   const openModal = useUiStore((state) => state.openModal);
 
-  return (
-    <LinearButton
-      type="button"
-      variant="secondary"
-      onClick={() => openModal(NEW_MODAL)}
-    >
-      <Plus className="h-4 w-4" aria-hidden />
-      Create your first template
-    </LinearButton>
-  );
-}
+//   return (
+//     <LinearButton
+//       type="button"
+//       variant="secondary"
+//       onClick={() => openModal(NEW_MODAL)}
+//     >
+//       <Plus className="h-4 w-4" aria-hidden />
+//       Create your first template
+//     </LinearButton>
+//   );
+// }

@@ -1,16 +1,15 @@
-import { redirect } from "next/navigation";
-import { FileText } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth/session";
-import { getPrisma } from "@/lib/db/prisma";
 import { EmptyState } from "@/components/shared/empty-state";
-import { LinearTitle } from "@/components/ui/linear";
 import {
   BulkImportButton,
-  NewTemplateEmptyAction,
   NewTemplateButton,
 } from "@/components/templates/template-actions";
 import { TemplateGrid } from "@/components/templates/template-grid";
+import { LinearTitle } from "@/components/ui/linear";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getPrisma } from "@/lib/db/prisma";
 import type { Template } from "@repo/shared-types";
+import { FileText } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Templates - RabbitMailer" };
 
@@ -53,9 +52,9 @@ export default async function TemplatesPage() {
             title="No templates yet"
             description="Create your first email template or import a CSV to start building campaigns."
           />
-          <div className="flex justify-center">
+          {/* <div className="flex justify-center">
             <NewTemplateEmptyAction />
-          </div>
+          </div> */}
         </div>
       ) : (
         <TemplateGrid templates={templates as Template[]} />

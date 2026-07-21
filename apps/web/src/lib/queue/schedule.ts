@@ -48,7 +48,7 @@ export async function scheduleCampaignEmails({
   }));
 
   // boss.insert() sends all jobs in one SQL statement — far more efficient than calling boss.send() N times, especially for large recipient lists.
-  const ids = await boss.insert(EMAIL_QUEUE, jobs);
+  const ids = await boss.insert(EMAIL_QUEUE, jobs, { returnId: true });
 
   if (ids === null) {
     // pg-boss returns null when the queue is blocked or the insert is rejected. Throw so sendCampaignAction can surface the failure instead of silently leaving recipients unscheduled.

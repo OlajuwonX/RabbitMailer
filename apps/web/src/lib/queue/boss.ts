@@ -21,13 +21,22 @@ export async function getBoss(): Promise<PgBoss> {
 async function _start(): Promise<PgBoss> {
   const boss = new PgBoss({
     connectionString: process.env.DATABASE_URL!,
+    max: 1,
+    connectionTimeoutMillis: 30_000,
     // The app side only schedules jobs — the Railway worker processes them. supervise: false prevents this instance from running the polling loop that would compete with the worker for job ownership.
     supervise: false,
+    // The web app only needs queue metadata for inserts. Keep pg-boss' background
+    // cache refresh infrequent so it does not compete with Prisma/Next dev DB usage.
+    queueCacheIntervalSeconds: 60 * 60,
     // Neon routes the app through PgBouncer in transaction-pooling mode. useListenNotify requires a session-pinned connection, which transaction pooling doesn't support — keep it off (also the default).
     useListenNotify: false,
   });
 
   try {
+    boss.on("error", (err) => {
+      console.error("pg-boss:", err);
+    });
+
     await boss.start();
     // Queue must exist before insert() or work() — createQueue uses ON CONFLICT DO NOTHING so this is safe to call on every start.
     await boss.createQueue(EMAIL_QUEUE);
