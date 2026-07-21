@@ -282,7 +282,7 @@ export async function sendCampaignAction(
       orderBy: { createdAt: "asc" },
     });
     if (pendingRecipients.length === 0) {
-      return { success: false, error: "No pending recipients found" };
+      throw new Error("No pending recipients found");
     }
 
     // Load templates in the order they were linked (order field set at campaign create)
@@ -292,7 +292,7 @@ export async function sendCampaignAction(
       select: { templateId: true },
     });
     if (campaignTemplates.length === 0) {
-      return { success: false, error: "No templates linked to this campaign" };
+      throw new Error("No templates linked to this campaign");
     }
 
     const templateIds = campaignTemplates.map((ct) => ct.templateId);

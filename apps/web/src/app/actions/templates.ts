@@ -203,3 +203,21 @@ export async function bulkImportTemplatesAction(
     return { success: false, error: "Failed to import templates" };
   }
 }
+
+export async function getTemplatesAction(): Promise<ActionResult<Template[]>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+
+    const prisma = await getPrisma();
+    const templates = await prisma.template.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: true, data: templates as unknown as Template[] };
+  } catch (err) {
+    console.error("getTemplatesAction:", err);
+    return { success: false, error: "Failed to load templates" };
+  }
+}
