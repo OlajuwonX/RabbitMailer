@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { bulkImportTemplatesAction } from "@/app/actions/templates";
 import { LinearButton } from "@/components/ui/linear";

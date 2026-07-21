@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "@/hooks/use-toast";
 import { Edit3, Trash2 } from "lucide-react";
 import { deleteTemplateAction } from "@/app/actions/templates";
 import { TemplateForm } from "@/components/forms/template-form";

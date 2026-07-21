@@ -1,6 +1,8 @@
+"use client";
+
 import { create } from "zustand";
 
-interface UiState {
+export interface UiState {
   sidebarOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;

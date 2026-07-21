@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "@/hooks/use-toast";
 import { signupAction } from "@/app/actions/auth";
 import {
   LinearCard,

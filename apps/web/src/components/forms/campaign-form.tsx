@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
-import { z } from "zod";
+import { toast } from "@/hooks/use-toast";
 import {
   createCampaignAction,
   sendCampaignAction,
 } from "@/app/actions/campaigns";
 import { getTemplatesAction } from "@/app/actions/templates";
 import { LinearButton } from "@/components/ui/linear";
+import { parseEmailList } from "@/lib/utils/validators";
 import type { RotationStrategy, Template } from "@repo/shared-types";
 import {
   DetailsStep,
@@ -17,20 +17,6 @@ import {
   TemplatesStep,
 } from "./campaign-form-steps";
 import { ReviewStep, StepHeader } from "./campaign-form-summary";
-
-const emailSchema = z.string().email();
-
-function parseEmails(input: string) {
-  const raw = input
-    .split(/[\n,]/)
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-  const unique = [...new Set(raw)];
-  return {
-    valid: unique.filter((email) => emailSchema.safeParse(email).success),
-    invalid: unique.filter((email) => !emailSchema.safeParse(email).success),
-  };
-}
 
 export function CampaignForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
@@ -44,7 +30,7 @@ export function CampaignForm({ onSuccess }: { onSuccess?: () => void }) {
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const parsedEmails = useMemo(() => parseEmails(recipients), [recipients]);
+  const parsedEmails = useMemo(() => parseEmailList(recipients), [recipients]);
 
   useEffect(() => {
     if (step !== 2 || templates.length > 0) return;
